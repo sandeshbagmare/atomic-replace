@@ -9,7 +9,7 @@
 <meta property="og:description" content="Replace a file so a crash cannot leave it half-written. Standard library only, Python 3.9+.">
 <meta property="og:image" content="https://raw.githubusercontent.com/sandeshbagmare/fsync-replace/main/assets/banner.svg">
 <meta property="og:type" content="website">
-<link rel="icon" href="../assets/logo.svg" type="image/svg+xml">
+<link rel="icon" href="assets/logo.svg" type="image/svg+xml">
 <style>
   :root {
     --bg: hsl(168 45% 8%);
@@ -79,7 +79,7 @@
 </head>
 <body>
 <header>
-  <img class="mark" src="../assets/logo.svg" alt="">
+  <img class="mark" src="assets/logo.svg" alt="">
   <strong>fsync-replace</strong>
   <nav>
     <a href="https://pypi.org/project/fsync-replace/">PyPI</a>
@@ -88,10 +88,10 @@
     <a href="https://github.com/sandeshbagmare/fsync-replace/blob/main/CHANGELOG.md">Changelog</a>
   </nav>
 </header>
-<div class="hero"><img src="../assets/banner.svg" alt="fsync-replace"></div>
+<div class="hero"><img src="assets/banner.svg" alt="fsync-replace"></div>
 <main>
 <p align="center">
-  <img src="../assets/how.svg" width="720" alt="how fsync-replace fits in">
+  <img src="assets/how.svg" width="720" alt="how fsync-replace fits in">
 </p>
 <h2>Why not <code>os.replace</code> alone</h2>
 <p><code>os.replace</code> is atomic, but a temporary file that was never flushed can still be empty after a power loss, and the rename is only durable once the directory entry is flushed too. Both are done here. <code>atomicwrites</code> stopped at the same problem in 2022 and does not <code>fsync</code> the directory.</p>
