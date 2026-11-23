@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>fsync-replace — replace a file so a crash cannot leave it half-written</title>
+<meta name="description" content="Replace a file so a crash cannot leave it half-written. Standard library only, Python 3.9+.">
+<meta property="og:title" content="fsync-replace — replace a file so a crash cannot leave it half-written">
+<meta property="og:description" content="Replace a file so a crash cannot leave it half-written. Standard library only, Python 3.9+.">
+<meta property="og:image" content="https://raw.githubusercontent.com/sandeshbagmare/fsync-replace/main/assets/banner.svg">
+<meta property="og:type" content="website">
+<link rel="icon" href="../assets/logo.svg" type="image/svg+xml">
+<style>
+  :root {
+    --bg: hsl(168 45% 8%);
+    --ink: #e6edf6;
+    --muted: #9fb0c6;
+    --line: hsl(168 35% 26%);
+    --accent: hsl(202 88% 66%);
+    --soft: hsl(202 92% 80%);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.65 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  a { color: var(--soft); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  header {
+    position: sticky; top: 0; z-index: 9; display: flex; gap: 18px; align-items: center;
+    padding: 14px 24px; background: rgba(8, 12, 20, 0.86); backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+  }
+  header .mark { width: 26px; height: 26px; }
+  header strong { font-family: ui-monospace, monospace; letter-spacing: 0.02em; }
+  header nav { margin-left: auto; display: flex; gap: 16px; font-size: 14px; }
+  .hero { max-width: 1180px; margin: 0 auto; padding: 18px 20px 0; }
+  .hero img { width: 100%; border-radius: 14px; box-shadow: 0 18px 50px rgba(0,0,0,0.45); }
+  main { max-width: 900px; margin: 0 auto; padding: 28px 20px 80px; }
+  h1, h2, h3, h4 { line-height: 1.25; }
+  h2 { margin-top: 44px; padding-top: 18px; border-top: 1px solid var(--line); }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.92em;
+    background: rgba(148, 163, 184, 0.15); padding: 1px 5px; border-radius: 5px;
+  }
+  pre.code {
+    position: relative; background: #070b12; border: 1px solid var(--line);
+    border-radius: 12px; padding: 16px; overflow-x: auto;
+  }
+  pre.code code { background: none; padding: 0; font-size: 14px; }
+  pre .lang {
+    position: absolute; top: 8px; right: 12px; font-size: 11px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  table { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: 15px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; }
+  img { max-width: 100%; }
+  blockquote {
+    margin: 18px 0; padding: 4px 16px; border-left: 3px solid var(--accent);
+    color: var(--muted);
+  }
+  footer {
+    border-top: 1px solid var(--line); padding: 26px 20px; color: var(--muted);
+    font-size: 14px; text-align: center;
+  }
+  .others { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--line); }
+  .others h2 { margin-top: 0; padding-top: 0; border-top: none; font-size: 20px; }
+  .others p { color: var(--muted); }
+  .others ul {
+    list-style: none; padding: 0; margin: 16px 0 0;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px 22px;
+  }
+  .others li { margin: 0; font-size: 15px; }
+  .others a { color: var(--soft); text-decoration: none; }
+  .others a:hover { text-decoration: underline; }
+  .others span { color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <img class="mark" src="../assets/logo.svg" alt="">
+  <strong>fsync-replace</strong>
+  <nav>
+    <a href="https://pypi.org/project/fsync-replace/">PyPI</a>
+    <a href="https://github.com/sandeshbagmare/fsync-replace">GitHub</a>
+    <a href="https://github.com/sandeshbagmare/fsync-replace/issues">Issues</a>
+    <a href="https://github.com/sandeshbagmare/fsync-replace/blob/main/CHANGELOG.md">Changelog</a>
+  </nav>
+</header>
+<div class="hero"><img src="../assets/banner.svg" alt="fsync-replace"></div>
+<main>
+<p align="center">
+  <img src="../assets/how.svg" width="720" alt="how fsync-replace fits in">
+</p>
+<h2>Why not <code>os.replace</code> alone</h2>
+<p><code>os.replace</code> is atomic, but a temporary file that was never flushed can still be empty after a power loss, and the rename is only durable once the directory entry is flushed too. Both are done here. <code>atomicwrites</code> stopped at the same problem in 2022 and does not <code>fsync</code> the directory.</p>
+<h2>Install</h2>
+<pre class="code"><span class="lang">console</span><code>pip install fsync-replace</code></pre>
+<h2>API</h2>
+<h3><code>write_atomic(path, data, mode="w", encoding="utf-8", *, fsync=True, newline=None, preserve_mode=True) -&gt; int</code></h3>
+<p>Writes <code>str</code> (text modes) or <code>bytes</code> (<code>mode="wb"</code>) and returns the number of characters or bytes written.</p>
+<ul>
+<li><code>fsync=False</code> skips both flushes, for scratch files where durability does not matter.</li>
+<li><code>preserve_mode</code> copies the permission bits of the file being replaced, so a script</li>
+</ul>
+<p>  that was <code>0700</code> stays <code>0700</code>. A new file keeps the default umask.</p>
+<ul>
+<li>A missing parent directory raises <code>FileNotFoundError</code> before anything is created.</li>
+</ul>
+<h3><code>atomic_open(path, mode="w", encoding="utf-8", *, fsync=True, newline=None, preserve_mode=True)</code></h3>
+<p>Context manager yielding an open handle. On a clean exit the file is moved into place; on an exception the temporary file is removed and the target is left as it was. The exception is not swallowed.</p>
+<h2>Limits</h2>
+<ul>
+<li>Durability is per file. Replacing several files is not a transaction; if you need</li>
+</ul>
+<p>  that, write a directory and swap it, or use a database.</p>
+<ul>
+<li><code>fsync</code> on the directory is skipped on Windows, where <code>os.replace</code> is already</li>
+</ul>
+<p>  durable and directories cannot be opened for writing.</p>
+<ul>
+<li>Temporary files are named <code>.&lt;target&gt;.&lt;random&gt;.tmp</code> in the same directory, because a</li>
+</ul>
+<p>  rename across filesystems is not atomic. A crash in the middle leaves one behind.</p>
+<h2>Development</h2>
+<pre class="code"><span class="lang">console</span><code>python -m venv .venv
+.venv/bin/pip install -e &quot;.[test]&quot;
+.venv/bin/pytest</code></pre>
+<p>The suite covers every line of the package (<code>pytest --cov --cov-branch</code>), and the examples in the docstrings run as tests through <code>--doctest-modules</code>.</p>
+<h2>License</h2>
+<p>MIT.</p>
+<section class="others">
+  <h2>Other libraries here</h2>
+  <p>One problem each, standard library only, no runtime dependencies.</p>
+  <ul>
+    <li><a href="https://sandeshbagmare.github.io/argrepair/">argrepair</a> <span>— turn a bad tool call into a message the model can act on</span></li>
+    <li><a href="https://sandeshbagmare.github.io/backoff-headers/">backoff-headers</a> <span>— turn a rate-limit header into the exact time to wait</span></li>
+    <li><a href="https://sandeshbagmare.github.io/columncheck/">columncheck</a> <span>— find the CSV defect before the pipeline does</span></li>
+    <li><a href="https://sandeshbagmare.github.io/dir-digest/">dir-digest</a> <span>— one hash for a directory tree, identical on every OS</span></li>
+    <li><a href="https://sandeshbagmare.github.io/docanchor/">docanchor</a> <span>— catch every broken heading anchor in your docs</span></li>
+    <li><a href="https://sandeshbagmare.github.io/envfile-diff/">envfile-diff</a> <span>— diff two .env files without printing the secrets</span></li>
+    <li><a href="https://sandeshbagmare.github.io/header-date/">header-date</a> <span>— HTTP dates parsed strictly, formatted correctly</span></li>
+    <li><a href="https://sandeshbagmare.github.io/junit-merge/">junit-merge</a> <span>— merge JUnit XML from every job into one honest report</span></li>
+    <li><a href="https://sandeshbagmare.github.io/npm-semver/">npm-semver</a> <span>— npm semver ranges, parsed the way npm parses them</span></li>
+    <li><a href="https://sandeshbagmare.github.io/outputcap/">outputcap</a> <span>— keep a huge tool result out of the context window</span></li>
+    <li><a href="https://sandeshbagmare.github.io/parse-size/">parse-size</a> <span>— byte sizes in and out, MB and MiB never confused</span></li>
+    <li><a href="https://sandeshbagmare.github.io/path-containment/">path-containment</a> <span>— keep untrusted paths inside their directory</span></li>
+    <li><a href="https://sandeshbagmare.github.io/redactscope/">redactscope</a> <span>— stop secrets in tool results before they reach the model</span></li>
+    <li><a href="https://sandeshbagmare.github.io/runbudget/">runbudget</a> <span>— a per-run cost cap that warns before it stops</span></li>
+    <li><a href="https://sandeshbagmare.github.io/testflakes/">testflakes</a> <span>— rank your flaky tests from the history you already have</span></li>
+    <li><a href="https://sandeshbagmare.github.io/tool-loop-guard/">tool-loop-guard</a> <span>— catch an agent repeating itself while it is still cheap</span></li>
+    <li><a href="https://sandeshbagmare.github.io/toolcall-ledger/">toolcall-ledger</a> <span>— a hash-chained record of every tool call</span></li>
+    <li><a href="https://sandeshbagmare.github.io/toolcircuit/">toolcircuit</a> <span>— stop retrying a tool that is down</span></li>
+    <li><a href="https://sandeshbagmare.github.io/toolquota/">toolquota</a> <span>— client-side rate limits your agent loop can wait on</span></li>
+    <li><a href="https://sandeshbagmare.github.io/wheeldeps/">wheeldeps</a> <span>— read a wheel's dependencies offline, markers included</span></li>
+    <li><a href="https://sandeshbagmare.github.io/zip-deterministic/">zip-deterministic</a> <span>— byte-identical archives, build after build</span></li>
+  </ul>
+</section>
+</main>
+<footer>
+  fsync-replace · MIT · standard library only ·
+  <a href="https://github.com/sandeshbagmare/fsync-replace">source</a> ·
+  <a href="https://pypi.org/project/fsync-replace/">pip install fsync-replace</a>
+</footer>
+</body>
+</html>
