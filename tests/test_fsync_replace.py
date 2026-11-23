@@ -38,9 +38,10 @@ class TestWriteAtomic:
     def test_can_skip_the_mode_copy(self, tmp_path):
         target = tmp_path / "report.txt"
         target.write_text("old", encoding="utf-8")
-        os.chmod(target, 0o600)
+        os.chmod(target, 0o640)
         write_atomic(target, "new", preserve_mode=False)
-        assert stat.S_IMODE(target.stat().st_mode) != 0o600
+        # The temporary file's own mode is kept, not the replaced file's.
+        assert stat.S_IMODE(target.stat().st_mode) != 0o640
 
     def test_leaves_no_temporary_file_behind(self, tmp_path):
         write_atomic(tmp_path / "report.txt", "hello")
