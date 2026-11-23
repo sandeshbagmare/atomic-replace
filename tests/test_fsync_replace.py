@@ -125,3 +125,63 @@ class TestAtomicOpen:
         target = str(tmp_path / "report.txt")
         write_atomic(target, "hello")
         assert Path(target).read_text(encoding="utf-8") == "hello"
+
+
+class TestDirectoryFsync:
+    """`_fsync_directory` cannot run for real on Windows, so both paths are simulated."""
+
+    def test_the_directory_is_opened_and_flushed(self, tmp_path, monkeypatch):
+        from fsync_replace import _fsync_directory
+
+        calls = []
+        monkeypatch.setattr(os, "name", "posix")
+        monkeypatch.setattr(os, "open", lambda path, flags: calls.append(("open", path)) or 7)
+        monkeypatch.setattr(os, "fsync", lambda fd: calls.append(("fsync", fd)))
+        monkeypatch.setattr(os, "close", lambda fd: calls.append(("close", fd)))
+        _fsync_directory(tmp_path)
+        assert calls[0][1] == str(tmp_path)
+        assert calls[1:] == [("fsync", 7), ("close", 7)]
+
+    def test_a_directory_that_cannot_be_opened_is_not_an_error(self, tmp_path, monkeypatch):
+        from fsync_replace import _fsync_directory
+
+        monkeypatch.setattr(os, "name", "posix")
+
+        def refuse(path, flags):
+            raise PermissionError("no")
+
+        monkeypatch.setattr(os, "open", refuse)
+        assert _fsync_directory(tmp_path) is None
+
+    def test_the_descriptor_is_closed_when_the_flush_fails(self, tmp_path, monkeypatch):
+        from fsync_replace import _fsync_directory
+
+        closed = []
+        monkeypatch.setattr(os, "name", "posix")
+        monkeypatch.setattr(os, "open", lambda path, flags: 9)
+
+        def boom(fd):
+            raise OSError("disk gone")
+
+        monkeypatch.setattr(os, "fsync", boom)
+        monkeypatch.setattr(os, "close", lambda fd: closed.append(fd))
+        with pytest.raises(OSError, match="disk gone"):
+            _fsync_directory(tmp_path)
+        assert closed == [9]
+
+    def test_o_directory_is_added_when_the_platform_has_it(self, tmp_path, monkeypatch):
+        from fsync_replace import _fsync_directory
+
+        flags_seen = []
+        monkeypatch.setattr(os, "name", "posix")
+        monkeypatch.setattr(os, "O_DIRECTORY", 0o200000, raising=False)
+        monkeypatch.setattr(os, "open", lambda path, flags: flags_seen.append(flags) or 3)
+        monkeypatch.setattr(os, "fsync", lambda fd: None)
+        monkeypatch.setattr(os, "close", lambda fd: None)
+        _fsync_directory(tmp_path)
+        assert flags_seen[0] & 0o200000
+
+    def test_the_target_mode_of_a_missing_file_is_none(self, tmp_path):
+        from fsync_replace import _target_mode
+
+        assert _target_mode(tmp_path / "nope.txt") is None
