@@ -1,34 +1,23 @@
-# fsync-replace
+<p align="center">
+  <img src="https://raw.githubusercontent.com/sandeshbagmare/fsync-replace/main/assets/banner.svg" width="100%" alt="fsync-replace: replace a file so a crash cannot leave it half-written">
+</p>
 
-[![PyPI](https://img.shields.io/pypi/v/fsync-replace.svg)](https://pypi.org/project/fsync-replace/)
-[![Python](https://img.shields.io/pypi/pyversions/fsync-replace.svg)](https://pypi.org/project/fsync-replace/)
-[![tests](https://github.com/sandeshbagmare/fsync-replace/actions/workflows/ci.yml/badge.svg)](https://github.com/sandeshbagmare/fsync-replace/actions/workflows/ci.yml)
-[![license](https://img.shields.io/pypi/l/fsync-replace.svg)](https://github.com/sandeshbagmare/fsync-replace/blob/main/LICENSE)
+<p align="center">
+  <a href="https://pypi.org/project/fsync-replace/"><img alt="PyPI version" src="https://img.shields.io/pypi/v/fsync-replace.svg"></a>
+  <a href="https://pypi.org/project/fsync-replace/"><img alt="Python versions" src="https://img.shields.io/pypi/pyversions/fsync-replace.svg"></a>
+  <a href="https://pypi.org/project/fsync-replace/"><img alt="Downloads" src="https://img.shields.io/pypi/dm/fsync-replace.svg"></a>
+  <a href="https://github.com/sandeshbagmare/fsync-replace/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/sandeshbagmare/fsync-replace/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/sandeshbagmare/fsync-replace/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/pypi/l/fsync-replace.svg"></a>
+  <a href="https://sandeshbagmare.github.io/fsync-replace/"><img alt="docs" src="https://img.shields.io/badge/docs-online-2ea44f.svg"></a>
+  <a href="https://pypi.org/project/fsync-replace/"><img alt="zero dependencies" src="https://img.shields.io/badge/dependencies-0-2ea44f.svg"></a>
+</p>
 
-Write a file **once, completely, or not at all**.
+<h3 align="center">replace a file so a crash cannot leave it half-written</h3>
+<p align="center"><em>Standard library only. No runtime dependencies. Python 3.9+.</em></p>
 
-```python
-from fsync_replace import write_atomic
-
-write_atomic("report.json", '{"ok": true}')
-```
-
-`write_atomic` writes to a temporary file next to the target, calls `fsync`, renames
-it over the target with `os.replace`, and then `fsync`s the directory entry so the
-rename itself is durable. A crash, a kill signal or a full disk leaves either the old
-file or the new one — never half of each.
-
-The context manager is the same thing with a file handle:
-
-```python
-from fsync_replace import atomic_open
-
-with atomic_open("state.json", "w") as handle:
-    handle.write('{"step": 3}')
-    # if this block raises, state.json is untouched and the temp file is removed
-```
-
-Zero dependencies, Python 3.9+, works on Linux, macOS and Windows.
+<p align="center">
+  <img src="https://raw.githubusercontent.com/sandeshbagmare/fsync-replace/main/assets/how.svg" width="720" alt="how fsync-replace fits in">
+</p>
 
 ## Why not `os.replace` alone
 
