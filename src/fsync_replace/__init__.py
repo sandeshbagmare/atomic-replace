@@ -26,7 +26,7 @@ from typing import IO, Union
 
 __all__ = ["atomic_open", "write_atomic"]
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 
 PathLike = Union[str, "os.PathLike[str]"]
 
